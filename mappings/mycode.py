@@ -11,5 +11,4 @@ df = spark.read.csv('/samples/sales.csv', sep =',' , inferSchema = True, header 
 #show data
 df.show(5)
 
-#printing schema
-df.printSchema()
+
