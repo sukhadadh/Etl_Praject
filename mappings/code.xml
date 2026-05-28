@@ -1,0 +1,80 @@
+from pyspark.sql import SparkSession
+from pyspark.sql.functions import *
+from pyspark.sql.window import Window
+
+#start session
+spark = SparkSession.builder.appName("spark practice").getOrCreate()
+
+#read sales dataframe
+df = spark.read.csv('/samples/sales.csv', sep =',' , inferSchema = True, header = True)
+
+#show data
+df.show(5)
+
+#printing schema
+df.printSchema()
+
+#count total rows
+count = df.count()
+print("total number of rows", count)
+
+#reading specific columns(select)
+df1 = df.select("sale_id" , "sale_date")
+df1.show()
+
+#filter (where)
+filtered_df = df.filter('total_amount > 50.00')
+filtered_df.show()
+print(filtered_df.count())
+
+#total sales amount(agregate function)
+df.select(avg('total_amount')).show()
+df.select(sum('total_amount')).show()
+df.select(max('total_amount')).show()
+
+#group by 
+#df.select(sum("total_amount").groupBy('product_id').show())
+df.groupBy("customer_id").sum("total_amount").show()
+
+#order by
+df.orderBy(col('sale_date').desc()).show()
+
+#distinct customers
+dist = df.select("customer_id").distinct().count()
+print(dist)
+
+#rename column
+df.withColumnRenamed('total_amount','sales_amount').show()
+
+#null handling
+df.fillna(0).show()
+
+#find duplicates
+drop_df = df.groupBy('customer_id').count().filter('count>1').show()
+
+#droping duplic
+drop_count = df.dropDuplicates(['customer_id'])
+
+#save clean records in sample folder
+#df2 = drop_count.write.option('header', True).csv('/folder/new_sales.csv')
+#df2.show()
+#print(df2.count())
+
+#monthly sales
+m_sales = df.groupBy(month('sale_date').alias('month')).sum('total_amount').show()
+
+#find nulls
+#df.filter('total_amount').isnull().show()
+
+#running totals
+wc = Window.orderBy(col("sale_date"))
+df = df.withColumn("running_total",sum('total_amount').over(wc)).show()
+
+#read second data set
+d2 = spark.read.csv("/samples/customers.csv", sep =',', inferSchema = True, header = True)
+d2.show()
+
+# join two datasets using customer_id
+join_df = df.join(d2, on='customer_id',how='inner')
+print(type(df))
+print(type(d2))
